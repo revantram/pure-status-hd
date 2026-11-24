@@ -47,6 +47,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
+import com.rvbhati.purestatus.engine.UserPreferences
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -75,6 +80,9 @@ fun SettingsScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
+
+    var savedNumber by remember { mutableStateOf(UserPreferences.getWhatsAppNumber(context)) }
+    var inputNumber by remember { mutableStateOf(savedNumber) }
 
     var isCheckingUpdate by remember { mutableStateOf(false) }
     var updateInfo by remember { mutableStateOf<UpdateInfo?>(null) }
@@ -125,6 +133,81 @@ fun SettingsScreen(
         }
 
         Spacer(modifier = Modifier.height(20.dp))
+
+        // WhatsApp Number Setting Card
+        LiquidGlassCard(
+            borderGlowColor = EmeraldGreen.copy(alpha = 0.5f),
+            isDark = isDarkTheme
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(WhatsAppGreen.copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Phone,
+                            contentDescription = null,
+                            tint = WhatsAppGreen,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = "आपका WhatsApp नंबर (HD चैट ट्रिक)",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        Text(
+                            text = if (savedNumber.isNotBlank()) "वर्तमान: +$savedNumber" else "नंबर सेट नहीं है",
+                            style = MaterialTheme.typography.bodySmall ?: MaterialTheme.typography.bodyMedium,
+                            color = if (savedNumber.isNotBlank()) EmeraldGreen else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                OutlinedTextField(
+                    value = inputNumber,
+                    onValueChange = { inputNumber = it },
+                    label = { Text("WhatsApp मोबाइल नंबर") },
+                    placeholder = { Text("उदा. 9876543210") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = EmeraldGreen,
+                        focusedLabelColor = EmeraldGreen
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Button(
+                    onClick = {
+                        if (inputNumber.isNotBlank()) {
+                            UserPreferences.setWhatsAppNumber(context, inputNumber)
+                            savedNumber = UserPreferences.getWhatsAppNumber(context)
+                            Toast.makeText(context, "नंबर सफलतापूर्वक अपडेट हो गया!", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(context, "कृपया नंबर दर्ज करें", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = EmeraldGreen, contentColor = Color.Black)
+                ) {
+                    Text("नंबर सेव करें", fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(18.dp))
 
         // In-App Update Card
         LiquidGlassCard(

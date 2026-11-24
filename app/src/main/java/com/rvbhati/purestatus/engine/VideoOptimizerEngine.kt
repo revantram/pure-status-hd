@@ -37,19 +37,19 @@ enum class QualityProfile(
     val targetPortraitHeight: Int,
     val targetBitrateKbps: Int
 ) {
+    ULTRA_1080P(
+        title = "Ultra Full HD (1080p)",
+        subtitle = "1080x1920 @ 6 Mbps • WhatsApp HD चैट ट्रिक (100% फुल क्लैरिटी)",
+        targetLandscapeHeight = 1080,
+        targetPortraitHeight = 1920,
+        targetBitrateKbps = 6000
+    ),
     WHATSAPP_HD(
-        title = "WhatsApp Pure HD",
-        subtitle = "720x1280 @ 2.4 Mbps • क्रिस्टल क्लियर शार्प स्टेटस (Bypass Recompression)",
+        title = "WhatsApp Standard HD (720p)",
+        subtitle = "720x1280 @ 2.4 Mbps • डायरेक्ट स्टेटस अपलोड के लिए",
         targetLandscapeHeight = 720,
         targetPortraitHeight = 1280,
         targetBitrateKbps = 2400
-    ),
-    ULTRA_1080P(
-        title = "Ultra HD 1080p",
-        subtitle = "1080x1920 @ 4.5 Mbps • WhatsApp HD स्टेटस बटन के लिए",
-        targetLandscapeHeight = 1080,
-        targetPortraitHeight = 1920,
-        targetBitrateKbps = 4500
     ),
     COMPACT_540P(
         title = "कम डेटा सेवर (540p)",

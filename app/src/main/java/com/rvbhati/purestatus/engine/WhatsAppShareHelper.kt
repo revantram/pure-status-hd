@@ -21,6 +21,38 @@ object WhatsAppShareHelper {
     private const val WHATSAPP_PKG = "com.whatsapp"
     private const val WHATSAPP_BIZ_PKG = "com.whatsapp.w4b"
 
+    fun sendVideoToSpecificNumber(context: Context, file: File, rawPhoneNumber: String) {
+        try {
+            val cleanNumber = rawPhoneNumber.replace("+", "").replace(" ", "").replace("-", "").trim()
+            val formattedNumber = if (cleanNumber.length == 10) "91$cleanNumber" else cleanNumber
+
+            val authority = "${context.packageName}.fileprovider"
+            val uri = FileProvider.getUriForFile(context, authority, file)
+
+            val jid = "$formattedNumber@s.whatsapp.net"
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = "video/mp4"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                putExtra("jid", jid)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+
+            val pm = context.packageManager
+            if (isPackageInstalled(pm, WHATSAPP_PKG)) {
+                intent.setPackage(WHATSAPP_PKG)
+                context.startActivity(intent)
+            } else if (isPackageInstalled(pm, WHATSAPP_BIZ_PKG)) {
+                intent.setPackage(WHATSAPP_BIZ_PKG)
+                context.startActivity(intent)
+            } else {
+                context.startActivity(Intent.createChooser(intent, "WhatsApp पर भेजें"))
+            }
+        } catch (e: Exception) {
+            Toast.makeText(context, "WhatsApp खोलने में त्रुटि: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     fun shareToWhatsApp(context: Context, file: File, preferStatus: Boolean = true) {
         try {
             val authority = "${context.packageName}.fileprovider"
@@ -33,7 +65,6 @@ object WhatsAppShareHelper {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
 
-            // Check if standard WhatsApp or WhatsApp Business is installed
             val pm = context.packageManager
             val waInstalled = isPackageInstalled(pm, WHATSAPP_PKG)
             val waBizInstalled = isPackageInstalled(pm, WHATSAPP_BIZ_PKG)
@@ -52,10 +83,14 @@ object WhatsAppShareHelper {
         }
     }
 
-    fun shareMultipleToWhatsApp(context: Context, files: List<File>) {
+    fun shareMultipleToWhatsApp(context: Context, files: List<File>, rawPhoneNumber: String? = null) {
         if (files.isEmpty()) return
         if (files.size == 1) {
-            shareToWhatsApp(context, files.first())
+            if (!rawPhoneNumber.isNullOrBlank()) {
+                sendVideoToSpecificNumber(context, files.first(), rawPhoneNumber)
+            } else {
+                shareToWhatsApp(context, files.first())
+            }
             return
         }
 
@@ -67,10 +102,16 @@ object WhatsAppShareHelper {
             }
 
             val intent = Intent(Intent.ACTION_SEND_MULTIPLE).apply {
-                type = "video/*"
+                type = "video/mp4"
                 putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+
+            if (!rawPhoneNumber.isNullOrBlank()) {
+                val cleanNumber = rawPhoneNumber.replace("+", "").replace(" ", "").replace("-", "").trim()
+                val formattedNumber = if (cleanNumber.length == 10) "91$cleanNumber" else cleanNumber
+                intent.putExtra("jid", "$formattedNumber@s.whatsapp.net")
             }
 
             val pm = context.packageManager
@@ -97,7 +138,7 @@ object WhatsAppShareHelper {
             val uri = FileProvider.getUriForFile(context, authority, file)
 
             val intent = Intent(Intent.ACTION_SEND).apply {
-                type = "video/*"
+                type = "video/mp4"
                 putExtra(Intent.EXTRA_STREAM, uri)
                 putExtra(Intent.EXTRA_TEXT, "PureStatus HD द्वारा ऑप्टिमाइज़ किया गया वीडियो")
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
