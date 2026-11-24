@@ -1,0 +1,65 @@
+name: Build PureStatus HD APK
+
+on:
+  push:
+    branches: [ "main", "master" ]
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build Release APK
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Prepare APK Output
+        run: |
+          mkdir -p release_apk
+          cp app/build/outputs/apk/release/app-release.apk release_apk/PureStatusHD-v1.0.apk || cp app/build/outputs/apk/debug/app-debug.apk release_apk/PureStatusHD-v1.0.apk
+          ls -la release_apk/
+
+      - name: Upload PureStatus HD APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PureStatusHD-APK
+          path: release_apk/PureStatusHD-v1.0.apk
+          retention-days: 30
+
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release_apk/PureStatusHD-v1.0.apk
+          name: PureStatus HD ${{ github.ref_name }}
+          body: |
+            ## 🚀 PureStatus HD Video Compressor & Splitter
+            - **100% Ad-Free (पूरी तरह विज्ञापन-मुक्त)**
+            - **Hardware MediaCodec Accelerated (अल्ट्रा-फास्ट कंप्रेशन)**
+            - **OLED Black & Liquid Glass Theme**
+            - **WhatsApp 30s Auto Status Splitter**
+            - **In-App Direct Update Support**
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
