@@ -38,25 +38,25 @@ enum class QualityProfile(
     val targetBitrateKbps: Int
 ) {
     ULTRA_1080P(
-        title = "Ultra Full HD (1080p)",
-        subtitle = "1080x1920 @ 6 Mbps • WhatsApp HD चैट ट्रिक (100% फुल क्लैरिटी)",
+        title = "Ultra HD 1080p (Pure Status)",
+        subtitle = "1080x1920 @ 6.5 Mbps • अधिकतम शार्पनेस व 10-14 MB HD मास्टर (अनुशंसित)",
         targetLandscapeHeight = 1080,
         targetPortraitHeight = 1920,
-        targetBitrateKbps = 6000
+        targetBitrateKbps = 6500
     ),
     WHATSAPP_HD(
         title = "WhatsApp Standard HD (720p)",
-        subtitle = "720x1280 @ 2.4 Mbps • डायरेक्ट स्टेटस अपलोड के लिए",
+        subtitle = "720x1280 @ 3.5 Mbps • हल्का HD स्टेटस (6-8 MB)",
         targetLandscapeHeight = 720,
         targetPortraitHeight = 1280,
-        targetBitrateKbps = 2400
+        targetBitrateKbps = 3500
     ),
     COMPACT_540P(
         title = "कम डेटा सेवर (540p)",
-        subtitle = "540x960 @ 1.2 Mbps • धीमे इंटरनेट के लिए सुपर-फ़ास्ट",
+        subtitle = "540x960 @ 1.5 Mbps • धीमे इंटरनेट के लिए सुपर-फ़ास्ट",
         targetLandscapeHeight = 540,
         targetPortraitHeight = 960,
-        targetBitrateKbps = 1200
+        targetBitrateKbps = 1500
     )
 }
 
@@ -65,7 +65,8 @@ data class ProcessedClip(
     val partIndex: Int,
     val totalParts: Int,
     val durationMs: Long,
-    val sizeBytes: Long
+    val sizeBytes: Long,
+    val galleryUri: Uri? = null
 ) {
     val sizeFormatted: String
         get() {
@@ -108,7 +109,7 @@ object VideoOptimizerEngine {
     suspend fun optimize(
         context: Context,
         videoInfo: VideoInfo,
-        profile: QualityProfile = QualityProfile.WHATSAPP_HD,
+        profile: QualityProfile = QualityProfile.ULTRA_1080P,
         autoSplit30s: Boolean = true,
         splitDurationMs: Long = 30_000L,
         onProgress: (overallProgress: Float, currentPart: Int, totalParts: Int, statusText: String) -> Unit
@@ -170,19 +171,23 @@ object VideoOptimizerEngine {
                 }
             )
 
+            // Automatically save to DCIM/PureStatus in phone gallery!
+            val galleryUri = WhatsAppShareHelper.saveToGallery(context, outputFile)
+
             val clip = ProcessedClip(
                 file = outputFile,
                 partIndex = partIndex,
                 totalParts = totalParts,
                 durationMs = segmentDuration,
-                sizeBytes = outputFile.length()
+                sizeBytes = outputFile.length(),
+                galleryUri = galleryUri
             )
             processedClips.add(clip)
         }
 
         val totalCompressedSize = processedClips.sumOf { it.sizeBytes }
 
-        onProgress(1.0f, totalParts, totalParts, "ऑप्टिमाइज़ेशन पूर्ण! WhatsApp HD तैयार है")
+        onProgress(1.0f, totalParts, totalParts, "ऑप्टिमाइज़ेशन पूर्ण! गैलरी में सेव हो गया")
 
         OptimizationResult(
             clips = processedClips,
