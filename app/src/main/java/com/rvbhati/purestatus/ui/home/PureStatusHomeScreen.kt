@@ -799,6 +799,33 @@ fun PureStatusHomeScreen(
 
                     Spacer(modifier = Modifier.height(18.dp))
 
+                    // Important WhatsApp HD Status Tip Banner
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (isDarkTheme) Color(0x2200E5FF) else Color(0x1400E5FF))
+                            .border(1.dp, NeonCyan.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AutoAwesome,
+                            contentDescription = null,
+                            tint = NeonCyan,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = "💡 WhatsApp स्टेटस लगाते समय स्क्रीन के सबसे ऊपर दिए गए 'HD' बटन पर टैप करके 'HD Quality' अवश्य चुनें, ताकि WhatsApp अपनी तरफ से क्वालिटी न घटाए।",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onBackground,
+                            lineHeight = 16.sp
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
                     // Action Buttons (WhatsApp Status, WhatsApp Chat, Save, Share)
                     Column(
                         verticalArrangement = Arrangement.spacedBy(10.dp),

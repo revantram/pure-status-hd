@@ -2,11 +2,14 @@ package com.rvbhati.purestatus.engine
 
 import android.content.Context
 import android.net.Uri
+import androidx.media3.common.Effect
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.effect.Contrast
 import androidx.media3.effect.Presentation
 import androidx.media3.transformer.Composition
+import androidx.media3.transformer.DefaultEncoderFactory
 import androidx.media3.transformer.EditedMediaItem
 import androidx.media3.transformer.EditedMediaItemSequence
 import androidx.media3.transformer.Effects
@@ -15,6 +18,7 @@ import androidx.media3.transformer.ExportResult
 import androidx.media3.transformer.ProgressHolder
 import androidx.media3.transformer.TransformationRequest
 import androidx.media3.transformer.Transformer
+import androidx.media3.transformer.VideoEncoderSettings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -29,26 +33,30 @@ import kotlin.coroutines.resumeWithException
 enum class QualityProfile(
     val title: String,
     val subtitle: String,
-    val maxDimension: Int,
+    val targetLandscapeHeight: Int,
+    val targetPortraitHeight: Int,
     val targetBitrateKbps: Int
 ) {
     WHATSAPP_HD(
         title = "WhatsApp Pure HD",
-        subtitle = "720p @ 3 Mbps • 100% साफ व स्पष्ट स्टेटस (अनुशंसित)",
-        maxDimension = 720,
-        targetBitrateKbps = 3000
+        subtitle = "720x1280 @ 2.4 Mbps • क्रिस्टल क्लियर शार्प स्टेटस (Bypass Recompression)",
+        targetLandscapeHeight = 720,
+        targetPortraitHeight = 1280,
+        targetBitrateKbps = 2400
     ),
     ULTRA_1080P(
         title = "Ultra HD 1080p",
-        subtitle = "1080p @ 5 Mbps • उच्चतम स्पष्टता",
-        maxDimension = 1080,
-        targetBitrateKbps = 5000
+        subtitle = "1080x1920 @ 4.5 Mbps • WhatsApp HD स्टेटस बटन के लिए",
+        targetLandscapeHeight = 1080,
+        targetPortraitHeight = 1920,
+        targetBitrateKbps = 4500
     ),
     COMPACT_540P(
         title = "कम डेटा सेवर (540p)",
-        subtitle = "540p @ 1.5 Mbps • धीमे इंटरनेट के लिए सुपर-फ़ास्ट",
-        maxDimension = 540,
-        targetBitrateKbps = 1500
+        subtitle = "540x960 @ 1.2 Mbps • धीमे इंटरनेट के लिए सुपर-फ़ास्ट",
+        targetLandscapeHeight = 540,
+        targetPortraitHeight = 960,
+        targetBitrateKbps = 1200
     )
 }
 
@@ -127,6 +135,12 @@ object VideoOptimizerEngine {
         val totalParts = parts.size
         val processedClips = mutableListOf<ProcessedClip>()
 
+        val targetHeight = if (videoInfo.isPortrait) {
+            profile.targetPortraitHeight
+        } else {
+            profile.targetLandscapeHeight
+        }
+
         for ((index, segment) in parts.withIndex()) {
             val partIndex = index + 1
             val (startMs, endMs) = segment
@@ -142,14 +156,15 @@ object VideoOptimizerEngine {
                 sourceUri = videoInfo.uri,
                 startMs = startMs,
                 endMs = endMs,
-                targetDimension = profile.maxDimension,
+                targetHeight = targetHeight,
+                targetBitrateKbps = profile.targetBitrateKbps,
                 outputFile = outputFile,
                 onPartProgress = { partProg ->
                     val totalProg = baseProgress + (partProg * partWeight)
                     val statusText = if (totalParts > 1) {
                         "भाग $partIndex/$totalParts प्रोसेस हो रहा है (${(partProg * 100).toInt()}%)"
                     } else {
-                        "वीडियो ऑप्टिमाइज़ हो रहा है (${(partProg * 100).toInt()}%)"
+                        "HD वीडियो ऑप्टिमाइज़ हो रहा है (${(partProg * 100).toInt()}%)"
                     }
                     onProgress(totalProg.coerceIn(0f, 0.99f), partIndex, totalParts, statusText)
                 }
@@ -183,7 +198,8 @@ object VideoOptimizerEngine {
         sourceUri: Uri,
         startMs: Long,
         endMs: Long,
-        targetDimension: Int,
+        targetHeight: Int,
+        targetBitrateKbps: Int,
         outputFile: File,
         onPartProgress: (Float) -> Unit
     ) = suspendCancellableCoroutine<Unit> { continuation ->
@@ -202,9 +218,17 @@ object VideoOptimizerEngine {
                 .setClippingConfiguration(clippingConfig)
                 .build()
 
-            // Scale video height while preserving aspect ratio
-            val presentation = Presentation.createForHeight(targetDimension)
-            val effects = Effects(emptyList(), listOf(presentation))
+            // Scale video height while preserving aspect ratio perfectly
+            val presentation = Presentation.createForHeight(targetHeight)
+            val effectList = mutableListOf<Effect>()
+            effectList.add(presentation)
+
+            // Pure Status Edge Clarity / Contrast Pre-Enhancement (+10% contrast)
+            try {
+                effectList.add(Contrast(0.10f))
+            } catch (_: Throwable) {}
+
+            val effects = Effects(emptyList(), effectList)
 
             val editedMediaItem = EditedMediaItem.Builder(mediaItem)
                 .setEffects(effects)
@@ -213,6 +237,17 @@ object VideoOptimizerEngine {
             val transformationRequest = TransformationRequest.Builder()
                 .setVideoMimeType(MimeTypes.VIDEO_H264)
                 .setAudioMimeType(MimeTypes.AUDIO_AAC)
+                .build()
+
+            // Configure precise video encoder settings (Bitrate & 1s Keyframe GOP)
+            val encoderSettings = VideoEncoderSettings.Builder()
+                .setBitrate(targetBitrateKbps * 1000)
+                .setIFrameIntervalSeconds(1.0f)
+                .build()
+
+            val encoderFactory = DefaultEncoderFactory.Builder(context)
+                .setRequestedVideoEncoderSettings(encoderSettings)
+                .setEnableFallback(true)
                 .build()
 
             var transformerInstance: Transformer? = null
@@ -237,6 +272,7 @@ object VideoOptimizerEngine {
             }
 
             val transformer = Transformer.Builder(context)
+                .setEncoderFactory(encoderFactory)
                 .setTransformationRequest(transformationRequest)
                 .addListener(listener)
                 .build()
@@ -247,7 +283,7 @@ object VideoOptimizerEngine {
 
             // Progress polling coroutine
             val progressHolder = ProgressHolder()
-            val pollingScope = kotlinx.coroutines.CoroutineScope(Dispatchers.Main + kotlinx.coroutines.SupervisorJob())
+            val pollingScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
             val progressJob = pollingScope.launch {
                 while (continuation.isActive) {
                     delay(120)

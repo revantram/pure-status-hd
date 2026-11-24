@@ -27,7 +27,7 @@ object WhatsAppShareHelper {
             val uri = FileProvider.getUriForFile(context, authority, file)
 
             val intent = Intent(Intent.ACTION_SEND).apply {
-                type = "video/*"
+                type = "video/mp4"
                 putExtra(Intent.EXTRA_STREAM, uri)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
