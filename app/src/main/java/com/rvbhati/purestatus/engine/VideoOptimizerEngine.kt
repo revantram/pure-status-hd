@@ -15,8 +15,11 @@ import androidx.media3.transformer.ExportResult
 import androidx.media3.transformer.ProgressHolder
 import androidx.media3.transformer.TransformationRequest
 import androidx.media3.transformer.Transformer
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -199,12 +202,8 @@ object VideoOptimizerEngine {
                 .setClippingConfiguration(clippingConfig)
                 .build()
 
-            // Calculate target dimension maintaining aspect ratio
-            val presentation = Presentation.createForMaxDimensions(
-                targetDimension,
-                targetDimension,
-                Presentation.LAYOUT_SCALE_TO_FIT
-            )
+            // Scale video height while preserving aspect ratio
+            val presentation = Presentation.createForHeight(targetDimension)
             val effects = Effects(emptyList(), listOf(presentation))
 
             val editedMediaItem = EditedMediaItem.Builder(mediaItem)
