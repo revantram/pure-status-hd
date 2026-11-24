@@ -21,6 +21,41 @@ object WhatsAppShareHelper {
     private const val WHATSAPP_PKG = "com.whatsapp"
     private const val WHATSAPP_BIZ_PKG = "com.whatsapp.w4b"
 
+    fun shareToSelfChat(context: Context, file: File, whatsappNumber: String) {
+        try {
+            val authority = "${context.packageName}.fileprovider"
+            val uri = FileProvider.getUriForFile(context, authority, file)
+            val cleanNumber = whatsappNumber.replace("+", "").replace(" ", "").replace("-", "").trim()
+            val formattedNumber = if (cleanNumber.length == 10) "91$cleanNumber" else cleanNumber
+
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = "video/mp4"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                if (formattedNumber.isNotBlank()) {
+                    putExtra("jid", "$formattedNumber@s.whatsapp.net")
+                }
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+
+            val pm = context.packageManager
+            val waInstalled = isPackageInstalled(pm, WHATSAPP_PKG)
+            val waBizInstalled = isPackageInstalled(pm, WHATSAPP_BIZ_PKG)
+
+            if (waInstalled) {
+                intent.setPackage(WHATSAPP_PKG)
+                context.startActivity(intent)
+            } else if (waBizInstalled) {
+                intent.setPackage(WHATSAPP_BIZ_PKG)
+                context.startActivity(intent)
+            } else {
+                context.startActivity(Intent.createChooser(intent, "WhatsApp चैट में भेजें"))
+            }
+        } catch (e: Exception) {
+            Toast.makeText(context, "चैट में भेजने में त्रुटि: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     fun shareToWhatsApp(context: Context, file: File, preferStatus: Boolean = true) {
         try {
             val authority = "${context.packageName}.fileprovider"

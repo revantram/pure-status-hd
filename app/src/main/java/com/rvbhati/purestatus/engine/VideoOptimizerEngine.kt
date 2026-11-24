@@ -37,26 +37,26 @@ enum class QualityProfile(
     val targetPortraitHeight: Int,
     val targetBitrateKbps: Int
 ) {
+    PURE_STATUS_HD(
+        title = "PureStatus HD (720x1280 • अनुशंसित)",
+        subtitle = "720x1280 @ 3800 Kbps • BT.709 कलर + नो-ब्लर शार्पनेस (कभी नहीं फटेगा)",
+        targetLandscapeHeight = 720,
+        targetPortraitHeight = 1280,
+        targetBitrateKbps = 3800
+    ),
     ULTRA_1080P(
-        title = "Ultra HD 1080p (Pure Status)",
-        subtitle = "1080x1920 @ 6.5 Mbps • अधिकतम शार्पनेस व 10-14 MB HD मास्टर (अनुशंसित)",
+        title = "Full HD Master (1080p)",
+        subtitle = "1080x1920 @ 6500 Kbps • चैट फॉरवर्ड 1080p HD ट्रिक के लिए",
         targetLandscapeHeight = 1080,
         targetPortraitHeight = 1920,
         targetBitrateKbps = 6500
     ),
-    WHATSAPP_HD(
-        title = "WhatsApp Standard HD (720p)",
-        subtitle = "720x1280 @ 3.5 Mbps • हल्का HD स्टेटस (6-8 MB)",
-        targetLandscapeHeight = 720,
-        targetPortraitHeight = 1280,
-        targetBitrateKbps = 3500
-    ),
     COMPACT_540P(
         title = "कम डेटा सेवर (540p)",
-        subtitle = "540x960 @ 1.5 Mbps • धीमे इंटरनेट के लिए सुपर-फ़ास्ट",
+        subtitle = "540x960 @ 1800 Kbps • कम साइज व सुपर-फ़ास्ट अपलोड",
         targetLandscapeHeight = 540,
         targetPortraitHeight = 960,
-        targetBitrateKbps = 1500
+        targetBitrateKbps = 1800
     )
 }
 
@@ -109,7 +109,7 @@ object VideoOptimizerEngine {
     suspend fun optimize(
         context: Context,
         videoInfo: VideoInfo,
-        profile: QualityProfile = QualityProfile.ULTRA_1080P,
+        profile: QualityProfile = QualityProfile.PURE_STATUS_HD,
         autoSplit30s: Boolean = true,
         splitDurationMs: Long = 30_000L,
         onProgress: (overallProgress: Float, currentPart: Int, totalParts: Int, statusText: String) -> Unit
@@ -228,9 +228,9 @@ object VideoOptimizerEngine {
             val effectList = mutableListOf<Effect>()
             effectList.add(presentation)
 
-            // Pure Status Edge Clarity / Contrast Pre-Enhancement (+10% contrast)
+            // Pure Status Edge Clarity / Contrast Pre-Enhancement (+12% contrast)
             try {
-                effectList.add(Contrast(0.10f))
+                effectList.add(Contrast(0.12f))
             } catch (_: Throwable) {}
 
             val effects = Effects(emptyList(), effectList)

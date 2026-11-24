@@ -47,6 +47,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.VideoLibrary
 import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -55,10 +56,12 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -82,6 +85,7 @@ import androidx.compose.ui.unit.sp
 import androidx.media3.common.util.UnstableApi
 import com.rvbhati.purestatus.engine.OptimizationResult
 import com.rvbhati.purestatus.engine.QualityProfile
+import com.rvbhati.purestatus.engine.UserPreferences
 import com.rvbhati.purestatus.engine.VideoInfo
 import com.rvbhati.purestatus.engine.VideoMetadataExtractor
 import com.rvbhati.purestatus.engine.VideoOptimizerEngine
@@ -108,8 +112,11 @@ fun PureStatusHomeScreen(
     var selectedVideoInfo by remember { mutableStateOf<VideoInfo?>(null) }
     var isLoadingInfo by remember { mutableStateOf(false) }
 
-    var selectedProfile by remember { mutableStateOf(QualityProfile.ULTRA_1080P) }
+    var selectedProfile by remember { mutableStateOf(QualityProfile.PURE_STATUS_HD) }
     var autoSplit30s by remember { mutableStateOf(true) }
+
+    var userWhatsAppNumber by remember { mutableStateOf(UserPreferences.getWhatsAppNumber(context)) }
+    var showNumberDialog by remember { mutableStateOf(false) }
 
     var isProcessing by remember { mutableStateOf(false) }
     var currentProgress by remember { mutableFloatStateOf(0f) }
@@ -831,34 +838,128 @@ fun PureStatusHomeScreen(
                         verticalArrangement = Arrangement.spacedBy(10.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        // 1. Direct Share to WhatsApp Status
+                        // HD Forward Secret Guide Banner
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(if (isDarkTheme) Color(0x1F00E676) else Color(0x1400C853))
+                                .border(1.dp, EmeraldGreen.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                                .padding(12.dp)
+                        ) {
+                            Column {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.AutoAwesome,
+                                        contentDescription = null,
+                                        tint = EmeraldGreen,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "100% Full HD स्टेटस लगाने की Pure Status ट्रिक:",
+                                        fontWeight = FontWeight.Black,
+                                        fontSize = 12.sp,
+                                        color = EmeraldGreen
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text(
+                                    text = "1️⃣ नीचे '1-Click HD चैट फॉरवर्ड' दबाएं (आपकी चैट खुलेगी)\n2️⃣ WhatsApp में ऊपर [HD] बटन दबाकर HD Quality चुनें व सेंड करें\n3️⃣ फिर चैट से Forward (➔) करके 'My Status' पर लगा दें\n✨ WhatsApp इसे 1% भी नहीं दबाएगा, वीडियो बिल्कुल नहीं फटेगा!",
+                                    fontSize = 11.sp,
+                                    lineHeight = 16.sp,
+                                    color = MaterialTheme.colorScheme.onBackground
+                                )
+                                if (userWhatsAppNumber.isNotBlank()) {
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Text(
+                                            text = "कनेक्टेड नंबर: +$userWhatsAppNumber",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Text(
+                                            text = "बदलें ✎",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Black,
+                                            color = EmeraldGreen,
+                                            modifier = Modifier.clickable { showNumberDialog = true }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // 1. Primary Button: 1-Click HD Chat Forward (100% Guaranteed HD)
                         Button(
+                            onClick = {
+                                val currentNum = UserPreferences.getWhatsAppNumber(context)
+                                if (currentNum.isBlank()) {
+                                    showNumberDialog = true
+                                } else {
+                                    WhatsAppShareHelper.shareToSelfChat(context, activeClip.file, currentNum)
+                                    Toast.makeText(
+                                        context,
+                                        "चैट में [HD] बटन दबाकर Send करें ➔ फिर 'My Status' पर Forward करें!",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(54.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = EmeraldGreen,
+                                contentColor = Color.Black
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AutoAwesome,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                                tint = Color.Black
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "🔥 1-Click HD चैट फॉरवर्ड (100% पक्का HD)",
+                                fontWeight = FontWeight.Black,
+                                fontSize = 15.sp,
+                                color = Color.Black
+                            )
+                        }
+
+                        // 2. Direct Share to WhatsApp Status
+                        OutlinedButton(
                             onClick = {
                                 WhatsAppShareHelper.shareToWhatsApp(context, activeClip.file, preferStatus = true)
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(52.dp),
+                                .height(48.dp),
                             shape = RoundedCornerShape(14.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = WhatsAppGreen,
-                                contentColor = Color.White
-                            )
+                            border = androidx.compose.foundation.BorderStroke(1.5.dp, WhatsAppGreen)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Share,
                                 contentDescription = null,
-                                modifier = Modifier.size(20.dp)
+                                tint = WhatsAppGreen,
+                                modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = if (optResult.clips.size > 1) {
-                                    "${activeClip.partTitle} को WhatsApp स्टेटस पर लगाएं"
+                                    "${activeClip.partTitle} डायरेक्ट स्टेटस पर लगाएं"
                                 } else {
-                                    "WhatsApp स्टेटस पर लगाएं (Direct Share)"
+                                    "⚡ डायरेक्ट WhatsApp स्टेटस पर लगाएं"
                                 },
-                                fontWeight = FontWeight.Black,
-                                fontSize = 15.sp
+                                fontWeight = FontWeight.Bold,
+                                color = WhatsAppGreen
                             )
                         }
 
@@ -953,6 +1054,64 @@ fun PureStatusHomeScreen(
                     }
                 }
             }
+        }
+
+        if (showNumberDialog) {
+            var tempNumber by remember { mutableStateOf(userWhatsAppNumber) }
+            AlertDialog(
+                onDismissRequest = { showNumberDialog = false },
+                title = {
+                    Text(
+                        text = "अपना WhatsApp नंबर दर्ज करें",
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                text = {
+                    Column {
+                        Text(
+                            text = "अपना 10-अंकों का मोबाइल नंबर डालें। वीडियो सीधे आपकी चैट में शेयर होगा ताकि आप [HD] बटन दबाकर स्टेटस पर फॉरवर्ड कर सकें:",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        OutlinedTextField(
+                            value = tempNumber,
+                            onValueChange = { tempNumber = it },
+                            label = { Text("WhatsApp नंबर (जैसे 8696663615)") },
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            if (tempNumber.isNotBlank()) {
+                                UserPreferences.setWhatsAppNumber(context, tempNumber)
+                                userWhatsAppNumber = UserPreferences.getWhatsAppNumber(context)
+                                showNumberDialog = false
+                                val clip = result?.clips?.getOrNull(selectedClipIndex) ?: result?.clips?.firstOrNull()
+                                if (clip != null) {
+                                    WhatsAppShareHelper.shareToSelfChat(context, clip.file, userWhatsAppNumber)
+                                    Toast.makeText(
+                                        context,
+                                        "चैट में [HD] बटन दबाकर Send करें ➔ फिर 'My Status' पर Forward करें!",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = EmeraldGreen)
+                    ) {
+                        Text("सेव करें व भेजें", color = Color.Black, fontWeight = FontWeight.Bold)
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showNumberDialog = false }) {
+                        Text("रद्द करें")
+                    }
+                }
+            )
         }
 
         Spacer(modifier = Modifier.height(40.dp))
