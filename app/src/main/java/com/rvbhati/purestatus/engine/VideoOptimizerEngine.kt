@@ -239,10 +239,9 @@ object VideoOptimizerEngine {
                 .setAudioMimeType(MimeTypes.AUDIO_AAC)
                 .build()
 
-            // Configure precise video encoder settings (Bitrate & 1s Keyframe GOP)
+            // Configure precise video encoder bitrate
             val encoderSettings = VideoEncoderSettings.Builder()
                 .setBitrate(targetBitrateKbps * 1000)
-                .setIFrameIntervalSeconds(1.0f)
                 .build()
 
             val encoderFactory = DefaultEncoderFactory.Builder(context)
